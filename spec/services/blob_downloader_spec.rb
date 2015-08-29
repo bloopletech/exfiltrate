@@ -14,6 +14,6 @@ RSpec.describe BlobDownloader do
     specify { expect(blob.aasm_state).to eq('requested') }
     specify { expect(blob.response_code).to eq(200) }
     specify { expect(blob.response_headers).to eq({}) }
-    specify { expect(blob.response_body_path).to eq('') }
+    specify { expect(blob.response_body.read).to eq('just google things') }
   end
 end

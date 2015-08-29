@@ -1,23 +1,28 @@
-require 'digest/sha1'
-
 class BlobDownloader
   def initialize(blob)
     @blob = blob
   end
 
   def download
-    response = UrlGetter.new(@blob.url, body_path).get
+    connection = Excon.new(@blob.url, uri_parser: Addressable::URI)
+
+    file = Tempfile.new('exfiltrate')
+    streamer = lambda { |chunk, remaining_bytes, total_bytes| file << chunk }
+
+    response = connection.get(response_block: streamer)
+
+    file.rewind
 
     @blob.update!(
-      response_code: response[:status],
-      response_headers: response[:headers],
-      response_body_path: response[:body_path]
+      response_code: response.status,
+      response_headers: response.headers,
+      response_body: file
     )
-
     @blob.request!
-  end
-
-  def body_path
-    @blob.site.path + 'blobs' + Digest::SHA1.hexdigest(@blob.url)
+  ensure
+    if file
+      file.close
+      file.unlink
+    end
   end
 end
